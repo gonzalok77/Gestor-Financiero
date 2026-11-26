@@ -8,6 +8,14 @@ Panel financiero personal como PWA: se instala en la pantalla de inicio del móv
 - `manifest.webmanifest` + `icons/` — instalación como app.
 - `xlsx.full.min.js` — SheetJS 0.18.5 local (importar/exportar Excel sin conexión).
 
+## Funciones móviles
+- **＋ Alta rápida**: botón flotante; importe primero, recuerda la última categoría, Hoy/Ayer.
+- **Deshacer**: al borrar o añadir aparece un aviso con *Deshacer* durante 5 s.
+- **Selector de mes** en Resumen: ‹ › o deslizar el dedo.
+- **Bloqueo con PIN** (Más → Activar bloqueo con PIN). Protección de acceso, no cifra los datos. Se vuelve a pedir tras 1 min en segundo plano. Si se olvida, hay que borrar los datos del sitio en el navegador.
+- **Tema automático** según el ajuste del dispositivo (o Claro/Oscuro fijo).
+- **Copias de seguridad**: aviso en Resumen si hace más de 30 días de la última; se pide al navegador almacenamiento persistente.
+
 ## Datos
 Todo se guarda **solo en el navegador del dispositivo** (`localStorage`, clave `pf_data_v3`). Nada se sube a ningún servidor.
 - Pasar datos desde la versión de escritorio: allí **Exportar (JSON)** → aquí **Más → Importar JSON**.
