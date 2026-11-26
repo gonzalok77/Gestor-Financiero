@@ -184,6 +184,32 @@
     .modal{border-radius:18px 18px 0 0;max-height:90vh;padding-bottom:calc(22px + env(safe-area-inset-bottom))}
     details.addform:not([open])>summary h2::before{content:"＋ "}
     .insight{font-size:13px;padding:12px}
+    .hide-m{display:none!important}
+    .row .field.full-m{flex:1 1 100%!important;align-self:auto!important}
+    .hdr-btns{display:flex;gap:6px;margin-top:8px}
+    .hdr-btns .btn{flex:1;justify-content:center;padding:6px 4px;white-space:nowrap}
+    .subnav button{flex:1;padding:8px 4px;font-size:12.5px}
+    .kpi .val{font-size:clamp(15px,5vw,20px);white-space:nowrap}
+    .kpi .val.sm{font-size:clamp(14px,4.6vw,17px)}
+    .kpi .lbl{font-size:10px;letter-spacing:.03em}
+    input[type=date],input[type=month]{min-width:0;-webkit-appearance:none;appearance:none}
+    .bar-row .am{width:auto;min-width:76px}
+    .pcard{padding:12px 0;border-bottom:1px solid var(--line)}
+    .pcard:last-child{border-bottom:none}
+    table.compact{font-size:12px}
+    table.compact th,table.compact td{padding:8px 4px}
+    table.compact th{font-size:10px}
+    table.rt thead{display:none}
+    table.rt,table.rt tbody{display:block}
+    table.rt tr{display:grid;grid-template-columns:repeat(var(--rt-cols,2),minmax(0,1fr));gap:6px 10px;padding:12px 2px;border-bottom:1px solid var(--line)}
+    table.rt tr:last-child{border-bottom:none}
+    table.rt td{display:block;border:none;padding:0;text-align:left!important;min-width:0;overflow-wrap:anywhere}
+    table.rt td::before{content:attr(data-label);display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;font-weight:600;margin-bottom:2px}
+    table.rt td.rt-title{grid-column:1/-1;font-weight:600}
+    table.rt td.rt-title::before,table.rt td.rt-act::before{display:none}
+    table.rt td.rt-act{grid-column:1/-1;text-align:right!important}
+    table.rt td.rt-full{grid-column:1/-1}
+    table.rt td.sub{padding-left:0!important}
   }
 </style>
 </head>
@@ -266,10 +292,12 @@
 <script>
 const COLORS=['var(--c0)','var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)','var(--c7)'];
 const DOW=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-const fmtEUR=new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'});
-const fmtEUR0=new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0});
-const fmtPct=new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtNum2=n=>new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const fmtEUR=new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',useGrouping:'always'});
+const fmtEUR0=new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0,useGrouping:'always'});
+const fmtPct=new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:'always'});
+const fmt1=new Intl.NumberFormat('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1});
+const f1=n=>fmt1.format(+n||0);
+const fmtNum2=n=>new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:'always'}).format(n);
 const $=s=>document.querySelector(s);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const p2=n=>String(n).padStart(2,'0');
@@ -404,6 +432,23 @@ function load(){
 const SECS={resumen:'Resumen',prevision:'Previsión',comparativa:'Comparativa',presupuestos:'Presupuestos',gastos:'Gastos',ingresos:'Ingresos',hipoteca:'Hipoteca',prestamo:'Devolución Préstamo',inversion:'Inversión'};
 function setSec(s){S.sec=s;S.edit=null;closeDrawer();render();window.scrollTo(0,0);}
 function setTab(t){S.tab[S.sec]=t;render();}
+// En móvil convierte las tablas en tarjetas: 1ª celda = título, resto = pares etiqueta/valor
+function tablasMovil(){
+  if(!isMobile())return;
+  document.querySelectorAll('#view table:not(.keep)').forEach(t=>{
+    const heads=[...t.querySelectorAll('thead th')].map(th=>th.textContent.replace(/[▲▼]/g,'').trim());
+    t.classList.add('rt');
+    t.querySelectorAll('tbody tr').forEach(tr=>{
+      const tds=[...tr.children];
+      if(tds.length===1){tds[0].classList.add('rt-full');return;}
+      const datos=tds.slice(1).filter((td,i)=>heads[i+1]);
+      tr.style.setProperty('--rt-cols',datos.length>=5||datos.length===3?3:2);
+      tds.forEach((td,i)=>{const h=heads[i]||'';if(i===0)td.classList.add('rt-title');else if(!h)td.classList.add('rt-act');else td.dataset.label=h;});
+    });
+  });
+  // gráficos con scroll: mostrar el periodo más reciente
+  document.querySelectorAll('#view .chart-scroll').forEach(d=>{d.scrollLeft=d.scrollWidth;});
+}
 function render(){
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.sec===S.sec));
   const principales=['resumen','gastos','ingresos','prevision'];
@@ -413,6 +458,7 @@ function render(){
   $('#headerActions').innerHTML='';
   updThemeBtns();
   ({resumen:vGlobal,prevision:vPrevision,comparativa:vComparativa,presupuestos:vPresupuestos,gastos:()=>vLedger('gastos'),ingresos:()=>vLedger('ingresos'),hipoteca:vHipoteca,prestamo:vPrestamo,inversion:vInversion})[S.sec]();
+  tablasMovil();
   save();
 }
 
@@ -543,7 +589,8 @@ function vGlobal(){
   g.forEach(e=>{(byM[monthKey(e.fecha)]??={i:0,g:0,h:0,p:0}).g+=e.importe;});
   if(sch){const now=todayISO().slice(0,7);sch.rows.forEach(row=>{if(row.fecha>now)return;if(!anioSel(row.fecha))return;(byM[row.fecha]??={i:0,g:0,h:0,p:0}).h+=row.cuota;});}
   S.prestamo.pagos.filter(x=>anioSel(x.fecha)).forEach(x=>{const k=monthKey(x.fecha);(byM[k]??={i:0,g:0,h:0,p:0}).p+=x.importe;});
-  const keys=Object.keys(byM).sort();
+  const mesesMov=[...in_,...g].map(e=>monthKey(e.fecha)).sort();
+  const keys=Object.keys(byM).sort().filter(k=>!mesesMov.length||k>=mesesMov[0]);
 
   const pTxt=periodoTxt();
   const prestTxt=prestPeriodo?(S.anios.length?(S.anios.length===1?'pagado en '+pTxt:'pagado en periodo'):'total pagado'):'sin pagos';
@@ -578,7 +625,7 @@ function vGlobal(){
     <div class="card kpi"><div class="lbl">Patrimonio neto*</div><div class="val sm ${patrimonio>=0?'pos':'neg'}">${fmtEUR.format(patrimonio)}</div><div class="sub">*foto ${corteTxt}</div></div>
   </div>
 
-  ${keys.length?`<div class="card" style="margin-bottom:14px"><h2>Ingresos vs Salidas por mes</h2><div style="overflow-x:auto">${chartIG(byM,keys)}</div>
+  ${keys.length?`<div class="card" style="margin-bottom:14px"><h2>Ingresos vs salidas por mes</h2><div class="chart-scroll" style="overflow-x:auto">${chartIG(byM,keys)}</div>
     <div class="legend"><span><i class="dot" style="background:var(--c1)"></i>Ingresos</span><span><i class="dot" style="background:var(--c3)"></i>Gasto</span><span><i class="dot" style="background:var(--c2)"></i>Hipoteca</span><span><i class="dot" style="background:var(--c4)"></i>Préstamo</span><span><i class="dot" style="background:var(--c0)"></i>Ahorro (línea)</span></div></div>`:''}
 
   <div class="two">
@@ -641,7 +688,7 @@ function bar(name,val,max,i,pct){
   if(pct!=null&&!isNaN(pct))w=pct;else if(max>0)w=val/max*100;else w=0;
   w=Math.max(0,Math.min(w,100));
   return `<div class="bar-row"><span class="nm" title="${name}">${name}</span>
-    <span class="bar-track"><span class="bar-fill" style="width:${w.toFixed(1)}%;background:${COLORS[i%8]}"></span><span class="bar-pct">${w.toFixed(1)}%</span></span>
+    <span class="bar-track"><span class="bar-fill" style="width:${w.toFixed(1)}%;background:${COLORS[i%8]}"></span><span class="bar-pct">${f1(w)}%</span></span>
     <span class="am">${fmtEUR.format(val)}</span></div>`;
 }
 function donut(arr,total){
@@ -709,7 +756,7 @@ function vPrevision(){
   let html=`<div class="card" style="margin-bottom:14px"><h2>🔮 Estimación del mes en curso · ${monthLabel(mesActual)}</h2>
     <div class="grid kpis">
       <div class="card kpi" style="box-shadow:none"><div class="lbl">Gastado hasta hoy</div><div class="val sm neg">${fmtEUR.format(gMes)}</div><div class="sub">día ${diaHoy} de ${diasMes}</div></div>
-      <div class="card kpi" style="box-shadow:none"><div class="lbl">Gasto proyectado fin de mes</div><div class="val sm" style="color:var(--c2)">${fmtEUR.format(proyGasto)}</div><div class="sub">quedan ${restanteDias} días</div></div>
+      <div class="card kpi" style="box-shadow:none"><div class="lbl">Proyección fin de mes</div><div class="val sm" style="color:var(--c2)">${fmtEUR.format(proyGasto)}</div><div class="sub">quedan ${restanteDias} días</div></div>
       <div class="card kpi" style="box-shadow:none"><div class="lbl">Vs media a día ${diaHoy}</div><div class="val sm ${gMes<=mediaGastoDia?'pos':'neg'}">${mediaGastoDia>0?(gMes>mediaGastoDia?'+':'')+fmtPct.format((gMes-mediaGastoDia)/mediaGastoDia*100)+'%':'—'}</div><div class="sub">media ${fmtEUR.format(mediaGastoDia)} a esta altura</div></div>
       <div class="card kpi" style="box-shadow:none"><div class="lbl">Ingreso del mes</div><div class="val sm pos">${fmtEUR.format(iMes)}</div></div>
     </div>
@@ -723,7 +770,7 @@ function vPrevision(){
   html+=`<div class="card" style="margin-bottom:14px"><h2>📅 Proyección de saldo a fin de ${yActual}</h2>
     <div class="grid kpis">
       <div class="card kpi" style="box-shadow:none"><div class="lbl">Dinero en cuenta hoy</div><div class="val sm ${dineroHoy>=0?'pos':'neg'}">${fmtEUR.format(dineroHoy)}</div></div>
-      <div class="card kpi" style="box-shadow:none"><div class="lbl">Ahorro medio/mes</div><div class="val sm ${ahorroMensualMedio>=0?'pos':'neg'}">${fmtEUR.format(ahorroMensualMedio)}</div><div class="sub">ingreso − gasto − hipoteca − inversión − préstamo</div></div>
+      <div class="card kpi" style="box-shadow:none"><div class="lbl">Ahorro medio/mes</div><div class="val sm ${ahorroMensualMedio>=0?'pos':'neg'}">${fmtEUR.format(ahorroMensualMedio)}</div><div class="sub">ingresos − todas las salidas</div></div>
       <div class="card kpi" style="box-shadow:none"><div class="lbl">Meses restantes</div><div class="val sm">${mesesRestantes+1}</div><div class="sub">incl. mes actual</div></div>
       <div class="card kpi" style="box-shadow:none"><div class="lbl">Saldo estimado 31/12</div><div class="val ${proySaldoFinAnio>=0?'pos':'neg'}">${fmtEUR.format(proySaldoFinAnio)}</div></div>
     </div>
@@ -738,12 +785,12 @@ function vPrevision(){
   html+=`<div class="card"><h2>🎯 Objetivo de ahorro</h2>
     <div class="row">
       <div class="field"><label>Objetivo (€)</label><input type="number" id="obj_val" value="${S.objetivoAhorro||''}" placeholder="Ej. 10000" oninput="setObjetivo(this.value)"></div>
-      <div class="field" style="flex:2;align-self:flex-end">
+      <div class="field full-m" style="flex:2;align-self:flex-end">
         ${S.objetivoAhorro>0?objetivoTexto(ahorradoTotal,ahorroPatrimonioMensual):'<span class="sub">Introduce un objetivo para estimar cuándo lo alcanzarás.</span>'}
       </div>
     </div>
-    ${S.objetivoAhorro>0?`<div style="margin-top:12px"><div class="bar-track" style="height:24px"><span class="bar-fill" style="width:${Math.max(0,Math.min(ahorradoTotal/S.objetivoAhorro*100,100)).toFixed(1)}%;background:var(--c1)"></span><span class="bar-pct">${(ahorradoTotal/S.objetivoAhorro*100).toFixed(1)}%</span></div>
-      <div class="flex" style="justify-content:space-between;margin-top:6px"><span class="sub">Ahorrado: ${fmtEUR.format(ahorradoTotal)} (cuenta ${fmtEUR.format(dineroHoy)} + inversión ${fmtEUR.format(invValHoy)})</span><span class="sub">Ritmo: ${fmtEUR.format(ahorroPatrimonioMensual)}/mes</span></div></div>`:''}
+    ${S.objetivoAhorro>0?`<div style="margin-top:12px"><div class="bar-track" style="height:24px"><span class="bar-fill" style="width:${Math.max(0,Math.min(ahorradoTotal/S.objetivoAhorro*100,100)).toFixed(1)}%;background:var(--c1)"></span><span class="bar-pct">${f1(Math.max(0,ahorradoTotal/S.objetivoAhorro*100))}%</span></div>
+      <div class="flex" style="justify-content:space-between;margin-top:6px"><span class="sub">Ahorrado: ${fmtEUR.format(ahorradoTotal)}<br>cuenta ${fmtEUR.format(dineroHoy)} + inversión ${fmtEUR.format(invValHoy)}</span><span class="sub">Ritmo: ${fmtEUR.format(ahorroPatrimonioMensual)}/mes</span></div></div>`:''}
   </div>`;
 
   $('#view').innerHTML=html;
@@ -765,9 +812,9 @@ function chartProyeccion(saldoHoy,ahorroMes,faltaMesActual,mesActualNum,anio){
   pts.push({mes:mesActualNum,val:saldo,label:'Fin '+MESES[mesActualNum-1]});
   for(let m=mesActualNum+1;m<=12;m++){saldo+=ahorroMes;pts.push({mes:m,val:saldo,label:MESES[m-1]});}
   if(pts.length<2)return '';
-  const W=Math.max(pts.length*70,360),H=200,pad=40;
+  const W=Math.max(pts.length*56,260),H=200,pad=34;
   const vals=pts.map(p=>p.val);
-  const min=Math.min(...vals,0)*1.05,max=Math.max(...vals)*1.05;const rng=(max-min)||1;
+  let min=Math.min(...vals,0),max=Math.max(...vals,0);const m=(max-min)*0.08||1;min-=m;max+=m;const rng=(max-min)||1;
   const x=i=>pad+i*((W-2*pad)/Math.max(pts.length-1,1));
   const y=v=>H-pad-((v-min)/rng)*(H-2*pad);
   const P=pts.map((p,i)=>[x(i),y(p.val)]);
@@ -827,11 +874,22 @@ function vPresupuestos(){
     </div>`;
   }
 
+  const presupMovil=()=>`<div class="mlist">${filas.map(({c,pres,gas,manual})=>{
+      const media=mediaCategoria(c,6);const pct=pres>0?gas/pres*100:0;
+      const estado=pres<=0?'':pct>100?'over':pct>80?'warn':'ok';
+      const col=pct>100?'var(--c3)':pct>80?'var(--c2)':'var(--c1)';
+      return `<div class="pcard">
+        <div class="flex" style="justify-content:space-between;align-items:center"><span class="chip">${c}</span>${estado?`<span class="pill ${estado}">${estado==='over'?'Superado':estado==='warn'?'Cerca':'OK'}</span>`:''}</div>
+        ${pres>0?`<div class="bar-track" style="height:18px;margin:10px 0 6px"><span class="bar-fill" style="width:${Math.min(pct,100).toFixed(1)}%;background:${col}"></span><span class="bar-pct">${pct.toFixed(0)}%</span></div>
+        <div class="flex sub" style="justify-content:space-between"><span>Gastado ${fmtEUR.format(gas)}</span><span class="${(pres-gas)<0?'neg':''}">${(pres-gas)<0?'Exceso ':'Quedan '}${fmtEUR.format(Math.abs(pres-gas))}</span></div>`:'<div class="sub" style="margin-top:8px">Sin histórico en los últimos 6 meses</div>'}
+        <div class="flex" style="align-items:center;margin-top:8px;gap:10px"><label style="margin:0;flex:1">Límite mensual${manual?' <span class="pill warn" title="Valor manual">M</span>':''}<br><span class="sub">media 6m: ${media>0?fmtEUR.format(media):'—'}</span></label>
+          <input type="number" inputmode="decimal" step="10" value="${manual?(+S.presupuestos[c]).toFixed(2):''}" placeholder="${pres>0?fmtNum2(pres):'0'}" onchange="setPresup('${c.replace(/'/g,"\\'")}',this.value)" style="width:120px;text-align:right"></div>
+      </div>`;}).join('')}</div>`;
   html+=`<div class="card"><div class="flex" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
       <h2 style="margin:0">Presupuestos por categoría</h2>
       ${Object.keys(S.presupuestos).length?`<button class="btn mini ghost" onclick="resetPresup()">↺ Volver a auto (media −10%)</button>`:''}
     </div>
-    <div style="overflow-x:auto"><table><thead><tr>
+    ${isMobile()?presupMovil():`<div style="overflow-x:auto"><table><thead><tr>
       <th>Categoría</th><th class="num">Media 6m</th><th class="num">Límite (auto −10%)</th><th class="num">Gastado</th><th class="num">Restante</th><th style="width:200px">Progreso</th><th></th>
     </tr></thead><tbody>
     ${filas.map(({c,pres,gas,manual})=>{
@@ -849,7 +907,7 @@ function vPresupuestos(){
         <td>${estado?`<span class="pill ${estado}">${estado==='over'?'Superado':estado==='warn'?'Cerca':'OK'}</span>`:''}</td>
       </tr>`;
     }).join('')}
-    </tbody></table></div>
+    </tbody></table></div>`}
     <p class="sub" style="margin-top:10px">El campo muestra el límite automático (media 6m −10%) como marcador de posición. Si escribes un valor queda <b>fijado manualmente</b> (marca <span class="pill warn">M</span>). Avisos: <span class="pill ok">OK</span> &lt;80% · <span class="pill warn">Cerca</span> 80-100% · <span class="pill over">Superado</span> &gt;100%.</p>
   </div>`;
   $('#view').innerHTML=html;
@@ -891,13 +949,13 @@ function vComparativa(){
   const selOpts=cur=>periodos.map(p=>`<option value="${p}" ${cur===p?'selected':''}>${perLabel(modo,p)}</option>`).join('');
   let html=`<div class="card" style="margin-bottom:14px"><h2>Configurar comparativa</h2>
     <div class="row">
-      <div class="field"><label>Comparar por</label>
+      <div class="field full-m"><label>Comparar por</label>
         <select onchange="compSet('modo',this.value)">
           <option value="anio" ${modo==='anio'?'selected':''}>Año completo</option>
           <option value="mes" ${modo==='mes'?'selected':''}>Mes concreto</option>
         </select></div>
       <div class="field"><label>Periodo A</label><select onchange="compSet('a',this.value)">${selOpts(S.comp.a)}</select></div>
-      <div class="field" style="flex:0;align-self:center;padding-top:18px"><span class="sub">vs</span></div>
+      <div class="field hide-m" style="flex:0;align-self:center;padding-top:18px"><span class="sub">vs</span></div>
       <div class="field"><label>Periodo B</label><select onchange="compSet('b',this.value)">${selOpts(S.comp.b)}</select></div>
       <button class="btn ghost mini" onclick="compSwap()" style="align-self:flex-end">⇄ Intercambiar</button>
     </div>
@@ -975,7 +1033,7 @@ function compCategorias(sec,title,A,B,la,lb){
     }
     return out;
   };
-  return `<div class="card" style="margin-bottom:14px"><h2>${title} <span class="sub">(clic en categoría para subcategorías)</span></h2>
+  return `<div class="card" style="margin-bottom:14px"><h2>${title} <span class="sub">(toca una categoría para ver subcategorías)</span></h2>
     <div style="overflow-x:auto"><table><thead><tr>
       <th>Categoría</th><th class="num">${la}</th><th class="num">${lb}</th><th class="num">Δ €</th><th class="num">Δ %</th>
     </tr></thead><tbody>
@@ -987,15 +1045,15 @@ function compCategorias(sec,title,A,B,la,lb){
 /* ===== LEDGER ===== */
 function vLedger(sec){
   const tab=S.tab[sec];
-  const tabs=[['resumen','Resumen'],['mensual','Evolución mensual'],['dow','Por día de la semana'],['tabla','Tabla']];
+  const tabs=[['resumen','Resumen'],['mensual','Mensual'],['dow','Por día'],['tabla','Movimientos']];
   const years=[...new Set(ledger(sec).items.map(e=>String(e.fecha).slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();
   const itemsAnio=ledger(sec).items.filter(e=>anioSel(e.fecha));
   $('#secSub').textContent=itemsAnio.length?`${itemsAnio.length} · ${fmtEUR.format(sum(itemsAnio))}`:'Sin datos';
   $('#headerActions').innerHTML=`
     ${anioChips(years)}
-    <button class="btn mini" onclick="openCats('${sec}')">⚙️ Categorías</button>
-    <button class="btn mini" onclick="openCSV('${sec}')">📑 Importar Excel</button>
-    <button class="btn mini" onclick="exportXLSX('${sec}')">📊 Exportar Excel</button>`;
+    <div class="hdr-btns"><button class="btn mini" onclick="openCats('${sec}')">⚙️ Categorías</button>
+    <button class="btn mini" onclick="openCSV('${sec}')">📑 Importar<span class="hide-m"> Excel</span></button>
+    <button class="btn mini" onclick="exportXLSX('${sec}')">📊 Exportar<span class="hide-m"> Excel</span></button></div>`;
   let html=`<div class="subnav">${tabs.map(([k,l])=>`<button class="${tab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('')}</div>`;
   html+=ledgerForm(sec);
   const foco=S.focusCat[sec];
@@ -1038,16 +1096,16 @@ function lResumen(sec,exAll){
     </div></div>`;
   }
   html+=`<div class="grid kpis" style="margin-bottom:14px">
-    <div class="card kpi"><div class="lbl">Total ${lbl}${focoSub?' · '+focoSub:(foco?' · '+foco:'')}</div><div class="val">${fmtEUR.format(total)}</div>${(foco||focoSub)&&totalGlobal?`<div class="sub">${(total/totalGlobal*100).toFixed(1)}% del total</div>`:''}</div>
+    <div class="card kpi"><div class="lbl">Total ${lbl}${focoSub?' · '+focoSub:(foco?' · '+foco:'')}</div><div class="val">${fmtEUR.format(total)}</div>${(foco||focoSub)&&totalGlobal?`<div class="sub">${f1((total/totalGlobal*100))}% del total</div>`:''}</div>
     <div class="card kpi"><div class="lbl">Nº registros</div><div class="val">${ex.length}</div></div>
     <div class="card kpi"><div class="lbl">Media/registro</div><div class="val">${fmtEUR.format(media)}</div></div>
     <div class="card kpi"><div class="lbl">Media mensual</div><div class="val">${fmtEUR.format(total/months)}</div></div>
   </div>
   <div class="grid two" id="resGrid">
-    <div class="card"><h2>Total por categoría <span class="sub">(clic para filtrar)</span></h2>${cats.map(([c,v],i)=>barCat(sec,c,v,totalGlobal?v/totalGlobal*100:0,i,c===foco)).join('')}</div>
+    <div class="card"><h2>Total por categoría <span class="sub">(toca para filtrar)</span></h2>${cats.map(([c,v],i)=>barCat(sec,c,v,totalGlobal?v/totalGlobal*100:0,i,c===foco)).join('')}</div>
     <div class="card"><h2>Distribución${foco?' · '+foco:''}</h2>${donut((foco?subs:cats),foco?totalSub:totalGlobal)}</div>
   </div>
-  <div class="card" style="margin-top:14px"><h2>Por subcategoría${foco?' · '+foco:''} <span class="sub">(clic para filtrar)</span></h2>
+  <div class="card" style="margin-top:14px"><h2>Por subcategoría${foco?' · '+foco:''} <span class="sub">(toca para filtrar)</span></h2>
     ${subs.length?subs.map(([s,v],i)=>barSub(sec,s,v,totalSub?v/totalSub*100:0,i,s===focoSub)).join(''):'<div class="empty">Sin subcategorías</div>'}
   </div>`;
   return html;
@@ -1056,14 +1114,14 @@ function barCat(sec,name,val,pct,i,active){
   const w=Math.max(0,Math.min(pct,100));const col=COLORS[i%8];
   return `<div class="bar-row" style="cursor:pointer;${active?'outline:2px solid var(--acc);border-radius:8px;padding:2px':''}" onclick="setFocusCat('${sec}','${name.replace(/'/g,"\\'")}')" title="Clic para ver solo ${name}">
     <span class="nm">${active?'▶ ':''}${name}</span>
-    <span class="bar-track"><span class="bar-fill" style="width:${w.toFixed(1)}%;background:${col}"></span><span class="bar-pct">${w.toFixed(1)}%</span></span>
+    <span class="bar-track"><span class="bar-fill" style="width:${w.toFixed(1)}%;background:${col}"></span><span class="bar-pct">${f1(w)}%</span></span>
     <span class="am">${fmtEUR.format(val)}</span></div>`;
 }
 function barSub(sec,name,val,pct,i,active){
   const w=Math.max(0,Math.min(pct,100));const col=COLORS[i%8];
   return `<div class="bar-row" style="cursor:pointer;${active?'outline:2px solid var(--acc);border-radius:8px;padding:2px':''}" onclick="setFocusSub('${sec}','${name.replace(/'/g,"\\'")}')" title="Clic para ver solo ${name}">
     <span class="nm">${active?'▶ ':''}${name}</span>
-    <span class="bar-track"><span class="bar-fill" style="width:${w.toFixed(1)}%;background:${col}"></span><span class="bar-pct">${w.toFixed(1)}%</span></span>
+    <span class="bar-track"><span class="bar-fill" style="width:${w.toFixed(1)}%;background:${col}"></span><span class="bar-pct">${f1(w)}%</span></span>
     <span class="am">${fmtEUR.format(val)}</span></div>`;
 }
 function setFocusCat(sec,cat){const same=S.focusCat[sec]===cat;S.focusCat[sec]=same?'':cat;S.focusSub[sec]='';render();}
@@ -1085,7 +1143,7 @@ function lMensual(sec,ex){
   const keys=Object.keys(byM).sort();const max=Math.max(...keys.map(k=>byM[k]));
   const W=Math.max(keys.length*70,300),H=240,pad=30;
   const bars=keys.map((k,i)=>{const bw=(W-2*pad)/keys.length*.5;const x=pad+i*((W-2*pad)/Math.max(keys.length,1))+((W-2*pad)/keys.length-bw)/2;const h=(byM[k]/max)*(H-2*pad);const col=sec==='gastos'?'var(--c3)':'var(--c1)';return `<rect x="${x}" y="${H-pad-h}" width="${bw}" height="${h}" rx="3" fill="${col}" opacity=".9"/><text x="${x+bw/2}" y="${H-pad+15}" text-anchor="middle" fill="var(--mut)" font-size="10">${monthLabel(k)}</text><text x="${x+bw/2}" y="${H-pad-h-6}" text-anchor="middle" fill="var(--txt)" font-size="10">${Math.round(byM[k])}</text>`;}).join('');
-  return html+`<div class="card"><h2>${sec==='gastos'?'Gasto':'Ingreso'} por mes</h2><div style="overflow-x:auto"><svg width="${W}" height="${H}">${bars}</svg></div></div>`;
+  return html+`<div class="card"><h2>${sec==='gastos'?'Gasto':'Ingreso'} por mes</h2><div class="chart-scroll" style="overflow-x:auto"><svg width="${W}" height="${H}">${bars}</svg></div></div>`;
 }
 function lDow(sec,ex){
   let html=focoSelector(sec);
@@ -1202,11 +1260,11 @@ function ledgerForm(sec){
     <summary><h2>${e?'Editar '+verb:'Añadir '+verb}</h2></summary>
     <div class="row">
       <div class="field"><label>Fecha</label><input type="date" id="f_fecha" value="${e?e.fecha:today}" onchange="updDow()"></div>
-      <div class="field"><label>Día</label><input id="f_dia" value="${e?e.dia:dowName(today)}" readonly></div>
-      <div class="field"><label>Categoría</label><select id="f_cat" onchange="onCatChange('${sec}')">${cats.map(c=>`<option ${selCat===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="field"><label>Subcategoría</label><select id="f_sub">${subs.map(s=>`<option ${e&&e.subcategoria===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="field hide-m"><label>Día</label><input id="f_dia" value="${e?e.dia:dowName(today)}" readonly></div>
+      <div class="field full-m"><label>Categoría</label><select id="f_cat" onchange="onCatChange('${sec}')">${cats.map(c=>`<option ${selCat===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field full-m"><label>Subcategoría</label><select id="f_sub">${subs.map(s=>`<option ${e&&e.subcategoria===s?'selected':''}>${s}</option>`).join('')}</select></div>
       <div class="field" style="flex:2"><label>Concepto</label><input id="f_con" value="${e?e.concepto.replace(/"/g,'&quot;'):''}" placeholder="Descripción"></div>
-      <div class="field"><label>Importe (€)</label><input id="f_imp" type="number" step="0.01" ${sec==='ingresos'?'min="0"':''} value="${e?e.importe:''}" placeholder="0,00"></div>
+      <div class="field"><label>Importe (€)</label><input id="f_imp" type="number" inputmode="decimal" step="0.01" ${sec==='ingresos'?'min="0"':''} value="${e?e.importe:''}" placeholder="0,00"></div>
       <button class="btn primary" onclick="saveItem('${sec}')">${e?'Guardar':'Añadir'}</button>
       ${e?`<button class="btn ghost" onclick="S.edit=null;render()">Cancelar</button>`:''}
     </div>
@@ -1239,7 +1297,7 @@ function vHipoteca(){
     </div>
     <div class="row" style="margin-top:12px">
       <div class="field"><label>Cuota mensual real (€) <span class="sub">opcional</span></label><input type="number" step="0.01" id="h_cuota" value="${h.cuotaManual||''}" placeholder="${sch?fmtNum2(sch.cuotaTeorica):'auto'}" oninput="h_set('cuotaManual',this.value)"></div>
-      <div class="field"><label>1ª cuota (€) <span class="sub">opcional</span></label><input type="number" step="0.01" id="h_primera" value="${h.primeraCuota||''}" placeholder="igual que cuota" oninput="h_set('primeraCuota',this.value)"></div>
+      <div class="field"><label>1ª cuota (€) <span class="sub">opcional</span></label><input type="number" step="0.01" id="h_primera" value="${h.primeraCuota||''}" placeholder="= cuota" oninput="h_set('primeraCuota',this.value)"></div>
       <div class="field" style="flex:2;align-self:flex-end"><div class="sub">${sch?`Cuota teórica: <b>${fmtEUR.format(sch.cuotaTeorica)}</b>. ${h.cuotaManual?'Usando tu cuota real.':'Vacío = teórica.'}`:'Introduce los datos para calcular.'}</div></div>
     </div>
   </div>`;
@@ -1254,17 +1312,17 @@ function vHipoteca(){
   html+=`<div class="grid kpis" style="margin-bottom:14px">
     <div class="card kpi"><div class="lbl">Cuota mensual</div><div class="val sm">${fmtEUR.format(sch.cuota)}</div></div>
     <div class="card kpi"><div class="lbl">Pendiente hoy</div><div class="val sm neg">${fmtEUR.format(pend)}</div></div>
-    <div class="card kpi"><div class="lbl">Capital amortizado</div><div class="val sm pos">${fmtEUR.format(pagadoCapital)}</div><div class="sub">${pctAm.toFixed(1)}%</div></div>
+    <div class="card kpi"><div class="lbl">Capital amortizado</div><div class="val sm pos">${fmtEUR.format(pagadoCapital)}</div><div class="sub">${f1(pctAm)}%</div></div>
     <div class="card kpi"><div class="lbl">Intereses totales</div><div class="val sm">${fmtEUR.format(totalInt)}</div></div>
   </div>
   <div class="grid kpis" style="margin-bottom:14px">
     <div class="card kpi"><div class="lbl">Coste total préstamo</div><div class="val sm">${fmtEUR.format(h.capital+totalInt)}</div></div>
     <div class="card kpi"><div class="lbl">Amort. anticipada</div><div class="val sm">${fmtEUR.format(totalExtra)}</div></div>
     <div class="card kpi"><div class="lbl">Fin previsto</div><div class="val sm">${monthLabel(ultima.fecha)}</div><div class="sub">${sch.rows.length} cuotas</div></div>
-    <div class="card kpi"><div class="lbl">% completado</div><div class="val sm pos">${pctAm.toFixed(1)}%</div></div>
+    <div class="card kpi"><div class="lbl">% completado</div><div class="val sm pos">${f1(pctAm)}%</div></div>
   </div>
   <div class="card" style="margin-bottom:14px"><h2>Progreso de amortización</h2>
-    <div class="bar-track" style="height:28px"><span class="bar-fill" style="width:${pctAm.toFixed(1)}%;background:var(--c1)"></span><span class="bar-pct" style="left:50%;transform:translateX(-50%)">${pctAm.toFixed(1)}%</span></div>
+    <div class="bar-track" style="height:28px"><span class="bar-fill" style="width:${pctAm.toFixed(1)}%;background:var(--c1)"></span><span class="bar-pct" style="left:50%;transform:translateX(-50%)">${f1(pctAm)}%</span></div>
     <div class="flex" style="justify-content:space-between;margin-top:8px"><span class="sub">Pagado: ${fmtEUR.format(pagadoCapital)}</span><span class="sub">Pendiente: ${fmtEUR.format(pend)}</span></div>
   </div>
   <div class="card" style="margin-bottom:14px"><h2>Registrar amortización anticipada</h2>
@@ -1277,6 +1335,14 @@ function vHipoteca(){
   </div>`;
   const yearly={};
   sch.rows.forEach(r=>{const y=r.fecha.slice(0,4);(yearly[y]??={int:0,cap:0,extra:0,saldo:0}).int+=r.int;yearly[y].cap+=r.cap;yearly[y].extra+=r.extra;yearly[y].saldo=r.saldo;});
+  if(isMobile()){
+    html+=`<div class="card"><h2>Cuadro de amortización (anual)</h2>
+    <table class="keep compact"><thead><tr><th>Año</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Pendiente</th></tr></thead><tbody>
+    ${Object.entries(yearly).map(([y,v])=>`<tr><td>${y}</td><td class="num">${fmtEUR0.format(v.cap+v.extra)}${v.extra?'*':''}</td><td class="num">${fmtEUR0.format(v.int)}</td><td class="num">${fmtEUR0.format(v.saldo)}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="sub" style="margin-top:10px">${sch.rows.length} cuotas mensuales.${totalExtra?' * Incluye amortización anticipada.':''}</p></div>`;
+    $('#view').innerHTML=html;return;
+  }
   html+=`<div class="card"><h2>Cuadro de amortización (anual)</h2>
     <div style="overflow-x:auto"><table><thead><tr><th>Año</th><th class="num">Capital</th><th class="num">Intereses</th><th class="num">Amort. extra</th><th class="num">Pendiente fin año</th></tr></thead><tbody>
     ${Object.entries(yearly).map(([y,v])=>`<tr><td>${y}</td><td class="num">${fmtEUR.format(v.cap)}</td><td class="num">${fmtEUR.format(v.int)}</td><td class="num">${v.extra?fmtEUR.format(v.extra):'—'}</td><td class="num">${fmtEUR.format(v.saldo)}</td></tr>`).join('')}
@@ -1308,10 +1374,10 @@ function vPrestamo(){
     <div class="card kpi"><div class="lbl">Importe total</div><div class="val sm">${fmtEUR.format(p.total)}</div></div>
     <div class="card kpi"><div class="lbl">Devuelto</div><div class="val sm pos">${fmtEUR.format(pagado)}</div><div class="sub">${p.pagos.length} pago(s)</div></div>
     <div class="card kpi"><div class="lbl">Pendiente</div><div class="val sm neg">${fmtEUR.format(pendiente)}</div></div>
-    <div class="card kpi"><div class="lbl">Progreso</div><div class="val ${pct>=100?'pos':''}">${pct.toFixed(1)}%</div></div>
+    <div class="card kpi"><div class="lbl">Progreso</div><div class="val ${pct>=100?'pos':''}">${f1(pct)}%</div></div>
   </div>
   <div class="card" style="margin-bottom:14px"><h2>Progreso de devolución</h2>
-    <div class="bar-track" style="height:28px"><span class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--c1)"></span><span class="bar-pct" style="left:50%;transform:translateX(-50%)">${pct.toFixed(1)}%</span></div>
+    <div class="bar-track" style="height:28px"><span class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--c1)"></span><span class="bar-pct" style="left:50%;transform:translateX(-50%)">${f1(pct)}%</span></div>
     <div class="flex" style="justify-content:space-between;margin-top:8px">
       <span class="sub">Devuelto: ${fmtEUR.format(pagado)}</span>
       <span class="sub">${pendiente<=0?'✅ Préstamo saldado':'Pendiente: '+fmtEUR.format(pendiente)}${ultimo?' · último pago '+fmtFecha(ultimo.fecha):''}</span>
@@ -1358,7 +1424,7 @@ function vInversion(){
         <datalist id="i_activos">${nombres.map(n=>`<option>${n}</option>`).join('')}</datalist></div>
       <div class="field"><label>Tipo</label><select id="i_tipo"><option>Acción</option><option>ETF</option><option>Fondo</option><option>Plan pensiones</option><option>Cripto</option><option>Otro</option></select></div>
       <div class="field"><label>Fecha</label><input id="i_fecha" type="date" value="${todayISO()}"></div>
-      <div class="field"><label>Invertido (€)</label><input id="i_inv" type="number" step="0.01" min="0" placeholder="0,00"></div>
+      <div class="field"><label>Invertido (€)</label><input id="i_inv" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
       <button class="btn primary" onclick="addInv()">Añadir</button>
     </div>
   </div>`;
@@ -1373,7 +1439,7 @@ function vInversion(){
       <div class="row">
         <div class="field" style="flex:2"><label>Activo</label><select id="v_act">${nombres.map(n=>`<option>${n}</option>`).join('')}</select></div>
         <div class="field"><label>Fecha</label><input id="v_fecha" type="date" value="${todayISO()}"></div>
-        <div class="field"><label>Valor actual (€)</label><input id="v_val" type="number" step="0.01" min="0" placeholder="0,00"></div>
+        <div class="field"><label>Valor actual (€)</label><input id="v_val" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
         <button class="btn primary" onclick="addValoracion()">Guardar valoración</button>
       </div>
       <p class="sub" style="margin-top:8px">Cada valoración se guarda con su fecha para ver la evolución. Se usa siempre la más reciente de cada activo.</p>
@@ -1423,7 +1489,7 @@ function vInversion(){
 }
 function chartEvolucion(serie,invertido){
   if(serie.length===1)return `<p class="sub">Solo hay una valoración (${fmtFecha(serie[0].fecha)}: ${fmtEUR.format(serie[0].valor)}). Registra más para ver la evolución.</p>`;
-  const W=Math.max(serie.length*70,360),H=220,pad=40;
+  const W=Math.max(serie.length*70,260),H=220,pad=40;
   const vals=serie.map(s=>s.valor).concat([invertido]);
   const min=Math.min(...vals)*0.98,max=Math.max(...vals)*1.02;const rng=max-min||1;
   const x=i=>pad+i*((W-2*pad)/Math.max(serie.length-1,1));
@@ -1435,7 +1501,7 @@ function chartEvolucion(serie,invertido){
   const labels=serie.map((s,i)=>`<text x="${x(i)}" y="${H-pad+16}" text-anchor="middle" fill="var(--mut)" font-size="9">${monthLabel(s.fecha.slice(0,7))}</text>`).join('');
   const yInv=y(invertido);
   const refLine=`<line x1="${pad}" y1="${yInv.toFixed(1)}" x2="${W-pad}" y2="${yInv.toFixed(1)}" stroke="var(--mut)" stroke-width="1" stroke-dasharray="4 3"/>`;
-  return `<div style="overflow-x:auto"><svg width="${W}" height="${H}">
+  return `<div class="chart-scroll" style="overflow-x:auto"><svg width="${W}" height="${H}">
     <defs><linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--c1)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--c1)" stop-opacity="0"/></linearGradient></defs>
     <path d="${area}" fill="url(#gArea)"/>${refLine}<path d="${line}" fill="none" stroke="var(--c1)" stroke-width="2"/>${dots}${labels}
   </svg></div>`;
