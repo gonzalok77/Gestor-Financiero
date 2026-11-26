@@ -1,0 +1,13 @@
+# Datos personales exportados desde la app: NUNCA subirlos al repositorio
+panel_financiero_*.json
+*.json
+!manifest.webmanifest
+gastos_*.xlsx
+ingresos_*.xlsx
+*.xlsx
+*.xls
+*.csv
+
+# Sistema
+.DS_Store
+Thumbs.db
