@@ -513,6 +513,7 @@ const S={
 };
 
 /* ===== PERSISTENCIA (localStorage) ===== */
+const APP_VERSION='1.5 · 26/11/2026';
 const LS_KEY='pf_data_v3';
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){}}
 function load(){
@@ -1973,7 +1974,7 @@ document.addEventListener('visibilitychange',()=>{
 
 function updMenuInfo(){
   const b=$('#pinBtn');if(b)b.textContent=pinActivo()?'🔒 PIN activado · desactivar':'🔓 Activar bloqueo con PIN';
-  const c=$('#copiaInfo');if(c)c.textContent=S.ultimaCopia?`Última copia: ${fmtFecha(S.ultimaCopia)}`:'Sin copias de seguridad todavía';
+  const c=$('#copiaInfo');if(c)c.innerHTML=(S.ultimaCopia?`Última copia: ${fmtFecha(S.ultimaCopia)}`:'Sin copias de seguridad todavía')+`<br>Versión ${APP_VERSION}`;
 }
 
 /* ===== INIT ===== */
@@ -1983,7 +1984,15 @@ render();
 pedirPersistencia();
 mqDark.addEventListener('change',()=>{if(S.theme==='auto')applyTheme();});
 window.matchMedia('(max-width:820px)').addEventListener('change',()=>render());
-if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+// Actualizaciones: comprobar al abrir y al volver a la app; recargar una vez cuando llega versión nueva
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  const habiaControl=!!navigator.serviceWorker.controller;let recargado=false;
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+    reg.update().catch(()=>{});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{});});
+  }).catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(habiaControl&&!recargado){recargado=true;location.reload();}});
+}
 </script>
 </body>
 </html>
