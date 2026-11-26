@@ -141,16 +141,21 @@
   details.addform>summary::-webkit-details-marker{display:none}
   details.addform>summary h2{display:inline}
   details.addform[open]>summary{margin-bottom:14px}
-  .mlist .mitem{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:12px 2px;border-bottom:1px solid var(--line)}
-  .mlist .mitem:last-child{border-bottom:none}
-  .mlist .mitem.rev{background:rgba(255,159,46,.08);border-radius:10px;padding:12px 8px}
-  .mlist .mmain{flex:1;min-width:0}
-  .mlist .mcon{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mlist .mday{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;font-weight:700;color:var(--mut);padding:16px 2px 6px;border-bottom:1px solid var(--line)}
+  .mlist .mday:first-child{padding-top:2px}
+  .mlist .mitem{padding:11px 2px;border-bottom:1px solid var(--line)}
+  .mlist .mitem.rev{background:rgba(255,159,46,.08);border-radius:10px;padding:11px 8px;margin:4px 0;border-bottom:none}
+  .mlist .mrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;cursor:pointer}
+  .mlist .mrow.sub{margin-top:3px;font-size:12.5px}
+  .mlist .mcon{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mlist .mcat{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mlist .mimp{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .mlist .mact{display:flex;gap:2px}
-  .mlist .mact button{min-width:36px;min-height:36px}
-  .mlist .mrev{flex-basis:100%;display:flex;gap:6px;align-items:center}
-  .mlist .mrev select{flex:1;min-width:0}
+  .mlist .mrev{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;margin-top:9px}
+  .mlist .mrev select{width:100%;min-width:0}
+  .mlist .mrev .btn{justify-content:center;padding:0;min-height:36px}
+  details.mfilt{flex-basis:100%;margin-top:10px}
+  details.mfilt>summary{cursor:pointer;color:var(--acc);font-weight:600;font-size:13px;padding:4px 0}
+  details.mfilt[open]>summary{margin-bottom:10px}
   @media(max-width:820px){
     body{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
     .app{display:block}
@@ -1169,20 +1174,22 @@ function lTabla(sec,base){
   rows.sort((a,b)=>{let x=a[key],y=b[key];if(key==='importe')return(x-y)*dir;return(x<y?-1:x>y?1:0)*dir;});
   const total=sum(rows);
   const nRevisar=base.filter(e=>e.revisar).length;
+  const nFiltros=['cat','sub','from','to'].filter(k=>S.filter[k]).length;
   const th=(k,l,n)=>`<th class="${n?'num':''}" onclick="sortBy('${k}')">${l}${S.sort.key===k?(S.sort.dir>0?' ▲':' ▼'):''}</th>`;
   const subsDisp=S.filter.cat?(ledger(sec).cats[S.filter.cat]||[]):[...new Set(base.map(e=>e.subcategoria).filter(Boolean))].sort();
   return `${nRevisar?`<div class="card" style="margin-bottom:14px;border-color:var(--c2)"><div class="flex" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-      <span>⚠️ <b>${nRevisar}</b> registro(s) con categoría deducida por revisar. Al confirmar (✓), la app <b>aprende</b> la regla para futuras importaciones.</span>
-      <button class="btn mini" onclick="confirmarTodos('${sec}')">Marcar todos revisados</button>
+      <span>${isMobile()?`⚠️ <b>${nRevisar}</b> por revisar · confirma con ✓ y la app aprende`:`⚠️ <b>${nRevisar}</b> registro(s) con categoría deducida por revisar. Al confirmar (✓), la app <b>aprende</b> la regla para futuras importaciones.`}</span>
+      <button class="btn mini" onclick="confirmarTodos('${sec}')">${isMobile()?'Confirmar todos':'Marcar todos revisados'}</button>
     </div></div>`:''}
   <div class="card" style="margin-bottom:14px"><div class="row">
-      <div class="field"><label>Buscar</label><input value="${S.filter.text}" oninput="setFilter('text',this.value)" placeholder="Concepto…"></div>
+      <div class="field${isMobile()?' full-m':''}">${isMobile()?'':'<label>Buscar</label>'}<input id="f_buscar" type="search" value="${escH(S.filter.text)}" oninput="setFilter('text',this.value)" placeholder="${isMobile()?'🔎 Buscar concepto, categoría…':'Concepto…'}"></div>
+      ${isMobile()?`</div><details class="mfilt" ${nFiltros?'open':''}><summary>Filtros${nFiltros?` · ${nFiltros} activo(s)`:''}</summary><div class="row">`:''}
       <div class="field"><label>Categoría</label><select onchange="setFilterCat(this.value)"><option value="">Todas</option>${cats.map(c=>`<option ${S.filter.cat===c?'selected':''}>${c}</option>`).join('')}</select></div>
       <div class="field"><label>Subcategoría</label><select onchange="setFilter('sub',this.value)"><option value="">Todas</option>${subsDisp.map(s=>`<option ${S.filter.sub===s?'selected':''}>${s}</option>`).join('')}</select></div>
       <div class="field"><label>Desde</label><input type="date" value="${S.filter.from}" onchange="setFilter('from',this.value)"></div>
       <div class="field"><label>Hasta</label><input type="date" value="${S.filter.to}" onchange="setFilter('to',this.value)"></div>
       <button class="btn ghost mini" onclick="clearFilter()">Limpiar</button>
-    </div></div>
+    ${isMobile()?'</div></details></div>':'</div></div>'}
   <div class="card"><h2>${rows.length} registro(s) · ${fmtEUR.format(total)}</h2>
     ${rows.length&&isMobile()?listaMovil(sec,rows):rows.length?`<div style="overflow-x:auto"><table><thead><tr>
       ${th('fecha','Fecha')}${th('dia','Día')}${th('categoria','Categoría')}${th('subcategoria','Subcategoría')}${th('concepto','Concepto')}${th('importe','Importe',1)}<th></th>
@@ -1210,22 +1217,33 @@ function lTabla(sec,base){
     </tbody></table></div>`:`<div class="empty">No hay registros que coincidan con el filtro</div>`}
   </div>`;
 }
+function fechaLarga(iso){const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return iso;const t=new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short',year:'numeric'});return t.charAt(0).toUpperCase()+t.slice(1);}
+function escH(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function listaMovil(sec,rows){
   const cs=Object.keys(ledger(sec).cats);
   const signo=sec==='gastos'?'−':'+',cls=sec==='gastos'?'neg':'pos';
-  return `<div class="mlist">${rows.map(e=>{
+  const porDia=S.sort.key==='fecha';
+  const totDia={};if(porDia)rows.forEach(e=>{totDia[e.fecha]=(totDia[e.fecha]||0)+e.importe;});
+  let html='<div class="mlist">',ultimo='';
+  rows.forEach(e=>{
+    if(porDia&&e.fecha!==ultimo){ultimo=e.fecha;html+=`<div class="mday"><span>${fechaLarga(e.fecha)}</span><span>${signo}${fmtEUR.format(totDia[e.fecha])}</span></div>`;}
     const subs=ledger(sec).cats[e.categoria]||[];
-    const head=`<div class="mmain"><div class="mcon">${e.concepto||'—'}</div><div class="sub">${fmtFecha(e.fecha)} · ${String(e.dia||'').slice(0,3)} · ${e.categoria}${e.subcategoria?' › '+e.subcategoria:''}</div></div><div class="mimp ${cls}">${signo}${fmtEUR.format(e.importe)}</div>`;
-    if(e.revisar)return `<div class="mitem rev">${head}<div class="mrev">
+    const cat=e.categoria+(e.subcategoria?' › '+e.subcategoria:'');
+    const ed=`onclick="editItem('${sec}','${e.id}')"`;
+    html+=`<div class="mitem${e.revisar?' rev':''}">
+      <div class="mrow" ${ed}><span class="mcon">${escH(e.concepto)||'—'}</span><span class="mimp ${cls}">${signo}${fmtEUR.format(e.importe)}</span></div>
+      <div class="mrow sub" ${ed}><span class="mcat">${escH(cat)}</span>${porDia?'':`<span>${fmtFecha(e.fecha)}</span>`}</div>
+      ${e.revisar?`<div class="mrev">
         <select class="inl" onchange="setCat('${sec}','${e.id}',this.value)">${cs.map(c=>`<option ${c===e.categoria?'selected':''}>${c}</option>`).join('')}</select>
-        <select class="inl" onchange="setSub('${sec}','${e.id}',this.value)">${subs.map(s=>`<option ${s===e.subcategoria?'selected':''}>${s}</option>`).join('')}${e.subcategoria&&!subs.includes(e.subcategoria)?`<option selected>${e.subcategoria}</option>`:''}</select>
-        <button class="btn mini primary" onclick="confirmarUno('${sec}','${e.id}')" title="Confirmar y aprender">✓</button><button class="del" onclick="delItem('${sec}','${e.id}')">✕</button>
-      </div></div>`;
-    return `<div class="mitem">${head}<div class="mact"><button class="edit" onclick="editItem('${sec}','${e.id}')">✎</button><button class="del" onclick="delItem('${sec}','${e.id}')">✕</button></div></div>`;
-  }).join('')}</div>`;
+        <select class="inl" onchange="setSub('${sec}','${e.id}',this.value)">${subs.map(x=>`<option ${x===e.subcategoria?'selected':''}>${x}</option>`).join('')}${e.subcategoria&&!subs.includes(e.subcategoria)?`<option selected>${e.subcategoria}</option>`:''}</select>
+        <button class="btn primary" onclick="confirmarUno('${sec}','${e.id}')" title="Confirmar y aprender">✓</button>
+      </div>`:''}
+    </div>`;
+  });
+  return html+'</div><p class="sub" style="margin-top:10px">Toca un movimiento para editarlo o eliminarlo.</p>';
 }
 function sortBy(k){if(S.sort.key===k)S.sort.dir*=-1;else{S.sort.key=k;S.sort.dir=1;}render();}
-function setFilter(k,v){S.filter[k]=v;render();}
+function setFilter(k,v){S.filter[k]=v;render();if(k==='text'){const i=document.getElementById('f_buscar');if(i){i.focus();i.setSelectionRange(v.length,v.length);}}}
 function setFilterCat(v){S.filter.cat=v;S.filter.sub='';render();}
 function clearFilter(){S.filter={cat:'',sub:'',text:'',from:'',to:''};render();}
 function confirmarTodos(sec){ledger(sec).items.forEach(e=>{if(e.revisar){aprenderRegla(e);e.revisar=false;}});render();}
@@ -1266,7 +1284,7 @@ function ledgerForm(sec){
       <div class="field" style="flex:2"><label>Concepto</label><input id="f_con" value="${e?e.concepto.replace(/"/g,'&quot;'):''}" placeholder="Descripción"></div>
       <div class="field"><label>Importe (€)</label><input id="f_imp" type="number" inputmode="decimal" step="0.01" ${sec==='ingresos'?'min="0"':''} value="${e?e.importe:''}" placeholder="0,00"></div>
       <button class="btn primary" onclick="saveItem('${sec}')">${e?'Guardar':'Añadir'}</button>
-      ${e?`<button class="btn ghost" onclick="S.edit=null;render()">Cancelar</button>`:''}
+      ${e?`<button class="btn ghost" onclick="S.edit=null;render()">Cancelar</button><button class="btn ghost" style="color:var(--red)" onclick="delEditando('${sec}')">Eliminar</button>`:''}
     </div>
   </details>`;
 }
@@ -1282,6 +1300,7 @@ function saveItem(sec){
   window._fc=null;render();
 }
 function editItem(sec,id){S.edit={...ledger(sec).items.find(e=>e.id===id),_sec:sec};render();window.scrollTo(0,0);}
+function delEditando(sec){if(!S.edit)return;const id=S.edit.id;if(confirm('¿Eliminar este registro?')){ledger(sec).items=ledger(sec).items.filter(e=>e.id!==id);S.edit=null;render();}}
 function delItem(sec,id){if(confirm('¿Eliminar este registro?')){ledger(sec).items=ledger(sec).items.filter(e=>e.id!==id);render();}}
 
 /* ===== HIPOTECA vista ===== */
