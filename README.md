@@ -14,6 +14,8 @@ Panel financiero personal como PWA: se instala en la pantalla de inicio del móv
 - **Selector de mes** en Resumen: ‹ › o deslizar el dedo.
 - **Bloqueo con PIN** (Más → Activar bloqueo con PIN). Protección de acceso, no cifra los datos. Se vuelve a pedir tras 1 min en segundo plano. Si se olvida, hay que borrar los datos del sitio en el navegador.
 - **Tema automático** según el ajuste del dispositivo (o Claro/Oscuro fijo).
+- **Tocar gráficos**: cualquier barra, mes, categoría o día abre su detalle con desglose y movimientos (editables).
+- **Informe mensual inteligente**: del 1 al 15 de cada mes aparece en Resumen el informe del mes anterior: ahorro y categorías frente a tu media de 6 meses, subidas de precio y cargos recurrentes que faltan, gastos nuevos, presupuestos superados y patrones. Disponible para cualquier mes desde el selector de mes.
 - **Copias de seguridad**: aviso en Resumen si hace más de 30 días de la última; se pide al navegador almacenamiento persistente.
 
 ## Datos

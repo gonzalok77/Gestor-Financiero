@@ -1,6 +1,6 @@
 // Service worker: la app funciona sin conexión.
 // Red primero (para recibir actualizaciones), caché como respaldo.
-const CACHE = 'finanzas-v5';
+const CACHE = 'finanzas-v6';
 const ASSETS = [
   './', './index.html', './xlsx.full.min.js', './manifest.webmanifest',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png'
